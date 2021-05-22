@@ -1,0 +1,37 @@
+{
+  "name": "dms-kinesis-gen",
+  "version": "1.2.0",
+  "description": "Generate Kinesis Base64 Records, based on JSON Files",
+  "main": "./dist/entrypoints/cli.js",
+  "author": "Jonathan Nagayoshi",
+  "repository": "sonikro/kinesis-dms-record-generator",
+  "keywords": [
+    "aws",
+    "dms",
+    "kinesis",
+    "generator",
+    "localstack"
+  ],
+  "license": "MIT",
+  "bin": "./dist/entrypoints/cli.js",
+  "scripts": {
+    "start": "ts-node src/entrypoints/cli.ts",
+    "build": "tsc",
+    "prepublish": "tsc",
+    "test": "jest --coverage"
+  },
+  "devDependencies": {
+    "@types/jest": "^26.0.23",
+    "@types/moment": "^2.13.0",
+    "@types/node": "^15.6.0",
+    "@types/prompts": "^2.0.12",
+    "jest": "^26.6.3",
+    "ts-jest": "^26.5.6",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.2.4"
+  },
+  "dependencies": {
+    "moment": "^2.29.1",
+    "prompts": "^2.4.1"
+  }
+}
