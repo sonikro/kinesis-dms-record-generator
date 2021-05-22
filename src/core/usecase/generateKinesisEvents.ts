@@ -89,7 +89,7 @@ export class GenerateKinesisEvents implements UseCase<GenerateKinesisEventsInput
         const payload = {
             "data": params.record,
             "metadata": {
-                "timestamp": moment(date).format("yyyy-mm-DDTHH:mm:ss.SSSS[Z]"),
+                "timestamp": moment(date).format("yyyy-MM-DDTHH:mm:ss.SSSS[Z]"),
                 "record-type": "data",
                 "operation": params.operation,
                 "partition-key-type": "primary-key",

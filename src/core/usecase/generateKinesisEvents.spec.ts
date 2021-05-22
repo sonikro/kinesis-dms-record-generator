@@ -46,7 +46,7 @@ describe("generatKinesisEvents", () => {
             recordContent: {
                 "data": mockJsonContent[0],
                 "metadata": {
-                    "timestamp": moment(now).format("yyyy-mm-DDTHH:mm:ss.SSSS[Z]"),
+                    "timestamp": moment(now).format("yyyy-MM-DDTHH:mm:ss.SSSS[Z]"),
                     "record-type": "data",
                     "operation": "load",
                     "partition-key-type": "primary-key",
