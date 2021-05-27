@@ -58,13 +58,13 @@ dms-kinesis-gen
 All the files inside the folder should follow the following pattern
 
 ```bash
-schema.table.json
+loadOrder.schema.table.json
 ```
 
 For example
 
 ```bash
-OT.CUSTOMER.json
+1.OT.CUSTOMER.json
 ```
 
 The JSON can have a single record, or an array of records, for example:

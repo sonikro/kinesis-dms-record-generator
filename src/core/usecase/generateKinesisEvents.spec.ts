@@ -6,7 +6,7 @@ import moment from "moment";
 
 describe("generatKinesisEvents", () => {
     const makeSut = () => {
-        const mockDirContent = ["schema1.table1.json"]
+        const mockDirContent = ["1.schema1.table1.json"]
         const mockJsonContent: JSONObject[] = [
             {
                 ID: 1,
