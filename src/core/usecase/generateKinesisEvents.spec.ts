@@ -72,7 +72,7 @@ describe("generateKinesisEvents", () => {
 
     it("throws error if filename is incorrect", async () => {
         //Given
-        const {sut, fileSystem, shell, mockJsonContent, mockDirContent} = makeSut()
+        const {sut, fileSystem} = makeSut()
         const expected = {
             partitionKey: "1",
             operation: "load",
