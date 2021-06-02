@@ -4,7 +4,7 @@ import {Shell} from "../providers/Shell";
 import {JSONObject} from "../domain/JSONObject";
 import moment from "moment";
 
-describe("generatKinesisEvents", () => {
+describe("generateKinesisEvents", () => {
     const makeSut = () => {
         const mockDirContent = ["1.schema1.table1.json"]
         const mockJsonContent: JSONObject[] = [
@@ -93,7 +93,69 @@ describe("generatKinesisEvents", () => {
             })
         }
         //Then
-        await expect(act).rejects.toThrowError(`Invalid file name ${expected.filename}. Files should follow the pattern schema.table.json`)
+        await expect(act).rejects.toThrowError(`Invalid file name ${expected.filename}. Files should follow the pattern order.schema.table.json`)
+    })
 
+    it("should load files from bigger order to lower order", async () => {
+      //Given
+      const {sut, shell, mockJsonContent, fileSystem} = makeSut()
+      const now = new Date()
+      Date.now = jest.fn().mockReturnValue(now)
+
+      const mockDirContent = [
+        "1.schema1.table1.json",
+        "3.schema3.table3.json",
+        "4.schema4.table4.json",
+        "2.schema2.table2.json"
+      ];
+
+      fileSystem.readDir = jest.fn().mockReturnValue(mockDirContent)
+
+      const eventDefinition = {
+        partitionKey: "1",
+        operation: "load",
+        streamName: "stream-name",
+        recordFileDir: "fileDir",
+        localstackEndpoint: "http://localhost:4566",
+        filename: mockDirContent,
+      }
+
+      const descOrderDirContent = mockDirContent.sort().reverse()
+      const kinesisEvents = descOrderDirContent.map((fileName) => {
+        const fileNameParts = fileName.split(".");
+        return {
+          "data": mockJsonContent[0],
+          "metadata": {
+            "timestamp": moment(now).format("yyyy-MM-DDTHH:mm:ss.SSSS[Z]"),
+            "record-type": "data",
+            "operation": "load",
+            "partition-key-type": "primary-key",
+            "schema-name": fileNameParts[1],
+            "table-name": fileNameParts[2],
+          }
+        }
+      })
+
+
+      //When
+      await sut.invoke({
+        partitionKey: eventDefinition.partitionKey,
+        operation: eventDefinition.operation as Operation,
+        streamName: eventDefinition.streamName,
+        recordFileDir: eventDefinition.recordFileDir,
+        localstackEndpoint: eventDefinition.localstackEndpoint
+      })
+
+      //Then
+      expect(shell.execute).toHaveBeenCalledTimes(4)
+      kinesisEvents.forEach(dirContent => {
+        expect(shell.execute).toHaveBeenCalledWith(`aws --endpoint-url=${eventDefinition.localstackEndpoint} kinesis put-record --stream-name ${eventDefinition.streamName} --partition-key ${eventDefinition.partitionKey} --data ${Buffer.from(JSON.stringify(dirContent)).toString("base64")}`)
+      })
+
+      // Desc array is now ordered with table4, table3, table2 and table1
+      expect(shell.execute).toHaveBeenNthCalledWith(1,`aws --endpoint-url=${eventDefinition.localstackEndpoint} kinesis put-record --stream-name ${eventDefinition.streamName} --partition-key ${eventDefinition.partitionKey} --data ${Buffer.from(JSON.stringify(kinesisEvents[0])).toString("base64")}`)
+      expect(shell.execute).toHaveBeenNthCalledWith(2,`aws --endpoint-url=${eventDefinition.localstackEndpoint} kinesis put-record --stream-name ${eventDefinition.streamName} --partition-key ${eventDefinition.partitionKey} --data ${Buffer.from(JSON.stringify(kinesisEvents[1])).toString("base64")}`)
+      expect(shell.execute).toHaveBeenNthCalledWith(3,`aws --endpoint-url=${eventDefinition.localstackEndpoint} kinesis put-record --stream-name ${eventDefinition.streamName} --partition-key ${eventDefinition.partitionKey} --data ${Buffer.from(JSON.stringify(kinesisEvents[2])).toString("base64")}`)
+      expect(shell.execute).toHaveBeenNthCalledWith(4,`aws --endpoint-url=${eventDefinition.localstackEndpoint} kinesis put-record --stream-name ${eventDefinition.streamName} --partition-key ${eventDefinition.partitionKey} --data ${Buffer.from(JSON.stringify(kinesisEvents[3])).toString("base64")}`)
     })
 })
