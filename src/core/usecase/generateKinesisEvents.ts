@@ -45,7 +45,7 @@ export class GenerateKinesisEvents implements UseCase<GenerateKinesisEventsInput
         const loadedFiles = filesToLoad.map(filepath => {
             const fileParts = filepath.split(".")
             if (fileParts.length < 4) {
-                throw new Error(`Invalid file name ${filepath}. Files should follow the pattern schema.table.json`)
+                throw new Error(`Invalid file name ${filepath}. Files should follow the pattern order.schema.table.json`)
             }
             return {
                 content: this.fileSystem.readJsonFile(`${recordFileDir}/${filepath}`),
@@ -53,9 +53,9 @@ export class GenerateKinesisEvents implements UseCase<GenerateKinesisEventsInput
                 schema: fileParts[1],
                 table: fileParts[2],
             }
-        }).sort((a, b) => a.order - b.order)
+        }).sort((a, b) => b.order - a.order)
 
-        console.log(`Running on the following order:\n ${loadedFiles.map(entry => `${entry.order}-${entry.schema}-${entry.table}`).join("\n")}`)
+        console.log(`Running on the following order:\n${loadedFiles.map(entry => `${entry.order}-${entry.schema}-${entry.table}`).join("\n")}`)
         for (const loadedFile of loadedFiles) {
             const content = Array.isArray(loadedFile.content) ? loadedFile.content : [loadedFile.content]
             const instructions = content.map(

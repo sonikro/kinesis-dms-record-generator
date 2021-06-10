@@ -55,7 +55,7 @@ dms-kinesis-gen
 
 # Pattern on filenames
 
-All the files inside the folder should follow the following pattern
+All the files inside the folder should follow the following pattern.
 
 ```bash
 loadOrder.schema.table.json
@@ -64,6 +64,15 @@ loadOrder.schema.table.json
 For example
 
 ```bash
+1.OT.CUSTOMER.json
+2.OT.PRODUCTS.json
+```
+
+The bigger the load-order, first it will be loaded, following the same patter from [Amazon DMS Docs](https://docs.aws.amazon.com/dms/latest/userguide/CHAP_Tasks.CustomizingTasks.TableMapping.SelectionTransformation.Selections.html).
+
+For the example files, the order will be:
+```bash
+2.OT.PRODUCTS.json
 1.OT.CUSTOMER.json
 ```
 
@@ -100,7 +109,7 @@ This JSON file will generate the following Kinesis Record
 # Prompts
 
 ```bash
-√ What's the folder where the JSON files are located ? ... files
+√ What's the folder where the JSON files are located ? ... C:\Users\my-user\Documents\cdc-files
 √ What's the name of the kinesis stream? ... my-localstack-stream
 √ What's the partition key? ... 1
 √ What's the localstack endpoint? ... http://localhost:4566
