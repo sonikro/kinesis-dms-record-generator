@@ -123,6 +123,17 @@ The cli will load all files inside the **files** folder, and load them to the ki
 ```bash
 yarn test
 ```
+
+# Running Lint
+
+```bash
+yarn lint
+
+# or with fix
+
+yarn lint:fix
+```
+
 # Contributing
 
 Check the [contributing.md](./CONTRIBUTING.md) file for more information
