@@ -7,7 +7,7 @@
 - [Dependencies](#dependencies)
 - [Running as bin](#running-as-bin)
 - [Pattern on filenames](#pattern-on-filenames)
-- [Prompts](#prompts)
+- [CLI options](#cli-options)
 - [Running Tests](#running-tests)
 - [Contributing](#contributing)
 
@@ -34,24 +34,6 @@ Before using this tool, you must have the following tools configured in your mac
 
 - [aws cli](https://aws.amazon.com/cli/)
 - [Localstack](https://github.com/localstack/localstack) (with kinesis enabled)
-
-# Running as bin
-
-```bash
-npx dms-kinesis-gen
-```
-
-or install it globally with
-
-```bash
-npm i -g dms-kinesis-gen
-```
-
-And then use the command
-
-```bash
-dms-kinesis-gen
-```
 
 # Pattern on filenames
 
@@ -106,17 +88,37 @@ This JSON file will generate the following Kinesis Record
 }
 ```
 
-# Prompts
+# CLI Options
+
+| Option | Description  | Required  | Default  |
+| ------- | --- | --- | --- |
+| -d, --directory <value> | The folder where the JSON files are located | Yes | |
+| -s, --stream-name <value> | The name of the kinesis stream | Yes | |
+| -p, --partition-key <value> | The partition key | No | 1 |
+| -e, --localstack-endpoint <value> | The localstack endpoint | No | http://localhost:4566 |
+| -o, --operation <value> | The operation* name you want to simulate | No | LOAD |
+
+- *Valid operations: LOAD, INSERT, UPDATE and DELETE
+  
+The cli will load all files inside the **files** folder, and load them to the kinesis stream
+
+# Running as bin
 
 ```bash
-√ What's the folder where the JSON files are located ? ... C:\Users\my-user\Documents\cdc-files
-√ What's the name of the kinesis stream? ... my-localstack-stream
-√ What's the partition key? ... 1
-√ What's the localstack endpoint? ... http://localhost:4566
-√ What's the name operation you want to simulate? » LOAD
+npx dms-kinesis-gen -d C:/Users/my-user/Documents/cdc-files -s my-stream-name
 ```
 
-The cli will load all files inside the **files** folder, and load them to the kinesis stream
+or install it globally with
+
+```bash
+npm i -g dms-kinesis-gen
+```
+
+And then use the command
+
+```bash
+dms-kinesis-gen -d C:/Users/my-user/Documents/cdc-files -s my-stream-name
+```
 
 # Running Tests
 
