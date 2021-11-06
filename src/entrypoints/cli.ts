@@ -10,25 +10,25 @@ import { NodeShell } from '../providers/NodeShell';
   command
     .requiredOption(
       '-d, --directory <value>',
-      'Directory where the JSON files are located',
+      'directory where the JSON files are located',
     )
     .requiredOption(
       '-s, --stream-name <value>',
-      'Name of the local-stack kinesis stream',
+      'local-stack kinesis stream name',
     )
     .option(
       '-p, --partition-key <value>',
-      'Local-stack kinesis partition key',
+      'local-stack kinesis partition key',
       '1',
     )
     .option(
       '-e, --localstack-endpoint <value>',
-      'Local-stack endpoint',
+      'local-stack endpoint',
       'http://localhost:4566',
     )
     .option(
       '-o, --operation <value>',
-      'Operation name you want to simulate?',
+      'operation name you want to simulate',
       GenerateKinesisEvents.validateOperation,
       'load',
     )
