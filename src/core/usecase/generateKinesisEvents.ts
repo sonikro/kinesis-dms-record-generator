@@ -122,4 +122,16 @@ export class GenerateKinesisEvents
       params.partitionKey
     } --data ${Buffer.from(JSON.stringify(payload)).toString('base64')}`;
   }
+
+  static validateOperation(operation: string): string {
+    const validOperations = ['LOAD', 'INSERT', 'UPDATE', 'DELETE'];
+
+    if (validOperations.includes(operation.toUpperCase())) {
+      return operation;
+    }
+
+    const validOperationsStr = validOperations.join(', ');
+    const errorMessage = `Invalid operation ${operation}. Please Make sure to select one of the following: [${validOperationsStr}]`;
+    throw Error(errorMessage);
+  }
 }
