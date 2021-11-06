@@ -213,4 +213,17 @@ describe('generateKinesisEvents', () => {
       ).toString('base64')}`,
     );
   });
+
+  it('should return the operation if is valid', () => {
+    const expectedOperation = 'load';
+    const operation = GenerateKinesisEvents.validateOperation('load');
+    expect(operation).toBe(expectedOperation);
+  });
+
+  it('should throw an error if operation is not valid', () => {
+    const invalidOperation = 'banana';
+    const expectedErrorMessage = `Invalid operation ${invalidOperation}. Please Make sure to select one of the following: [LOAD, INSERT, UPDATE, DELETE]`;
+    const act = () => GenerateKinesisEvents.validateOperation(invalidOperation);
+    expect(act).toThrow(expectedErrorMessage);
+  });
 });
