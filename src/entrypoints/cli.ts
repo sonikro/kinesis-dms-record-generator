@@ -32,7 +32,7 @@ import { NodeShell } from '../providers/NodeShell';
       GenerateKinesisEvents.validateOperation,
       'load',
     )
-    .option('-b, --batch', 'flag for batch processing', false)
+    .option('-c, --chunk-size <value>', 'chunk-size for batch processing', '1')
     .parse();
 
   const response = command.opts();
@@ -48,7 +48,7 @@ import { NodeShell } from '../providers/NodeShell';
     partitionKey: response.partitionKey,
     localstackEndpoint: response.localstackEndpoint,
     operation: response.operation,
-    batch: response.batch,
+    chunkSize: response.chunkSize,
   });
 
   console.log(response);
