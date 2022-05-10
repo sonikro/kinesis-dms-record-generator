@@ -26,6 +26,10 @@ export interface GenerateKinesisEventsInput {
    * Localstack Endpoint
    */
   localstackEndpoint: string;
+  /**
+   * Flag to indicate you want to process as batch
+   */
+  batch: boolean;
 }
 
 /**
@@ -46,6 +50,7 @@ export class GenerateKinesisEvents
       partitionKey,
       operation,
       localstackEndpoint,
+      batch,
     } = input;
     const filesToLoad = this.fileSystem.readDir(recordFileDir);
 
@@ -76,17 +81,31 @@ export class GenerateKinesisEvents
       const content = Array.isArray(loadedFile.content)
         ? loadedFile.content
         : [loadedFile.content];
-      const instructions = content.map((record: JSONObject) =>
-        GenerateKinesisEvents.generateCommandLine({
-          partitionKey,
+
+      const kinesisPayloadList = content.map((record: JSONObject) =>
+        GenerateKinesisEvents.generateKinesisDataPayload({
           record,
           schema: loadedFile.schema,
           table: loadedFile.table,
           operation,
-          streamName,
-          endpoint: localstackEndpoint,
         }),
       );
+
+      const instructions = batch
+        ? GenerateKinesisEvents.generateBatchCommandLine({
+            payloadBundle: kinesisPayloadList,
+            streamName,
+            partitionKey,
+            endpoint: localstackEndpoint,
+          })
+        : kinesisPayloadList.map((data) =>
+            GenerateKinesisEvents.generateCommandLine({
+              payload: data,
+              streamName,
+              partitionKey,
+              endpoint: localstackEndpoint,
+            }),
+          );
 
       for (const command of instructions) {
         const stdout = await this.shell.execute(command);
@@ -95,15 +114,46 @@ export class GenerateKinesisEvents
     }
   }
 
+  // TODO - this probably can be unified with batch passing 1 as argument
   private static generateCommandLine(params: {
+    payload: string;
+    streamName: string;
+    partitionKey: string;
+    endpoint: string;
+  }): string {
+    return `aws --endpoint-url=${params.endpoint} kinesis put-record --stream-name ${params.streamName} --partition-key ${params.partitionKey} --data ${params.payload}`;
+  }
+
+  private static generateBatchCommandLine(params: {
+    payloadBundle: string[];
+    streamName: string;
+    partitionKey: string;
+    endpoint: string;
+  }): string[] {
+    const commandList = [];
+
+    // TODO - make it configurable
+    const chunkSize = 500;
+    for (let i = 0; i < params.payloadBundle.length; i += chunkSize) {
+      const chunk = params.payloadBundle.slice(i, i + chunkSize);
+
+      let command = `aws --endpoint-url=${params.endpoint} kinesis put-records --stream-name ${params.streamName} --records `;
+
+      for (const payload of chunk) {
+        command += `Data=${payload},PartitionKey=${params.partitionKey} `;
+      }
+      commandList.push(command);
+    }
+
+    return commandList;
+  }
+
+  private static generateKinesisDataPayload(params: {
     schema: string;
     table: string;
     operation: string;
     record: JSONObject;
-    streamName: string;
-    partitionKey: string;
-    endpoint: string;
-  }) {
+  }): string {
     const date = Date.now();
     const payload = {
       data: params.record,
@@ -116,11 +166,8 @@ export class GenerateKinesisEvents
         'table-name': params.table,
       },
     };
-    return `aws --endpoint-url=${
-      params.endpoint
-    } kinesis put-record --stream-name ${params.streamName} --partition-key ${
-      params.partitionKey
-    } --data ${Buffer.from(JSON.stringify(payload)).toString('base64')}`;
+
+    return `${Buffer.from(JSON.stringify(payload)).toString('base64')}`;
   }
 
   static validateOperation(operation: string): string {
