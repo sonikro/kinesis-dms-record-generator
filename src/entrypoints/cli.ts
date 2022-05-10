@@ -32,7 +32,12 @@ import { NodeShell } from '../providers/NodeShell';
       GenerateKinesisEvents.validateOperation,
       'load',
     )
-    .option('-c, --chunk-size <value>', 'chunk-size for batch processing', '1')
+    .option(
+      '-c, --chunk-size <value>',
+      'chunk-size for batch processing (1 to 500)',
+      GenerateKinesisEvents.validateChunkSize,
+      '1',
+    )
     .parse();
 
   const response = command.opts();

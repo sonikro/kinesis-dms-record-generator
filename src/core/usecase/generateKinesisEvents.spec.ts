@@ -226,6 +226,19 @@ describe('generateKinesisEvents', () => {
     expect(operation).toBe(expectedOperation);
   });
 
+  it('should return the chunkSize if is valid', () => {
+    const expectedChunkSize = '1';
+    const chunkSize = GenerateKinesisEvents.validateChunkSize('1');
+    expect(chunkSize).toBe(expectedChunkSize);
+  });
+
+  it('should throw an error if operation is not valid', () => {
+    const invalidChunkSize = '0';
+    const expectedErrorMessage = `Invalid chunk size ${invalidChunkSize}. Please Make sure to select a number between 1 and 500`;
+    const act = () => GenerateKinesisEvents.validateChunkSize(invalidChunkSize);
+    expect(act).toThrow(expectedErrorMessage);
+  });
+
   it('should throw an error if operation is not valid', () => {
     const invalidOperation = 'banana';
     const expectedErrorMessage = `Invalid operation ${invalidOperation}. Please Make sure to select one of the following: [LOAD, INSERT, UPDATE, DELETE]`;

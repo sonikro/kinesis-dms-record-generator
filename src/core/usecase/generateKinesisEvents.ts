@@ -159,4 +159,12 @@ export class GenerateKinesisEvents
     const errorMessage = `Invalid operation ${operation}. Please Make sure to select one of the following: [${validOperationsStr}]`;
     throw Error(errorMessage);
   }
+
+  static validateChunkSize(chunkSize: string): string {
+    if (+chunkSize >= 1 && +chunkSize <= 500) {
+      return chunkSize;
+    }
+    const errorMessage = `Invalid chunk size ${chunkSize}. Please Make sure to select a number between 1 and 500`;
+    throw Error(errorMessage);
+  }
 }
