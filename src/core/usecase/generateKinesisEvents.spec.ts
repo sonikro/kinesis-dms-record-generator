@@ -43,6 +43,7 @@ describe('generateKinesisEvents', () => {
       streamName: 'stream-name',
       recordFileDir: 'fileDir',
       localstackEndpoint: 'http://localhost:4566',
+      chunkSize: '1',
       filename: mockDirContent[0],
       recordContent: {
         data: mockJsonContent[0],
@@ -63,6 +64,7 @@ describe('generateKinesisEvents', () => {
       streamName: expected.streamName,
       recordFileDir: expected.recordFileDir,
       localstackEndpoint: expected.localstackEndpoint,
+      chunkSize: +expected.chunkSize,
     });
     // Then
     expect(fileSystem.readDir).toHaveBeenCalledWith(expected.recordFileDir);
@@ -72,11 +74,11 @@ describe('generateKinesisEvents', () => {
     expect(shell.execute).toHaveBeenCalledWith(
       `aws --endpoint-url=${
         expected.localstackEndpoint
-      } kinesis put-record --stream-name ${
+      } kinesis put-records --stream-name ${
         expected.streamName
-      } --partition-key ${expected.partitionKey} --data ${Buffer.from(
+      } --records Data=${Buffer.from(
         JSON.stringify(expected.recordContent),
-      ).toString('base64')}`,
+      ).toString('base64')},PartitionKey=${expected.partitionKey} `,
     );
   });
 
@@ -89,6 +91,7 @@ describe('generateKinesisEvents', () => {
       streamName: 'stream-name',
       recordFileDir: 'fileDir',
       localstackEndpoint: 'http://localhost:4566',
+      chunkSize: '1',
       filename: 'wrong.format',
     };
     fileSystem.readDir = jest.fn().mockReturnValue([expected.filename]);
@@ -100,6 +103,7 @@ describe('generateKinesisEvents', () => {
         streamName: expected.streamName,
         recordFileDir: expected.recordFileDir,
         localstackEndpoint: expected.localstackEndpoint,
+        chunkSize: +expected.chunkSize,
       });
     };
     // Then
@@ -129,6 +133,7 @@ describe('generateKinesisEvents', () => {
       streamName: 'stream-name',
       recordFileDir: 'fileDir',
       localstackEndpoint: 'http://localhost:4566',
+      chunkSize: '1',
       filename: mockDirContent,
     };
 
@@ -155,6 +160,7 @@ describe('generateKinesisEvents', () => {
       streamName: eventDefinition.streamName,
       recordFileDir: eventDefinition.recordFileDir,
       localstackEndpoint: eventDefinition.localstackEndpoint,
+      chunkSize: +eventDefinition.chunkSize,
     });
 
     // Then
@@ -163,11 +169,11 @@ describe('generateKinesisEvents', () => {
       expect(shell.execute).toHaveBeenCalledWith(
         `aws --endpoint-url=${
           eventDefinition.localstackEndpoint
-        } kinesis put-record --stream-name ${
+        } kinesis put-records --stream-name ${
           eventDefinition.streamName
-        } --partition-key ${eventDefinition.partitionKey} --data ${Buffer.from(
-          JSON.stringify(dirContent),
-        ).toString('base64')}`,
+        } --records Data=${Buffer.from(JSON.stringify(dirContent)).toString(
+          'base64',
+        )},PartitionKey=${eventDefinition.partitionKey} `,
       );
     });
 
@@ -176,41 +182,41 @@ describe('generateKinesisEvents', () => {
       1,
       `aws --endpoint-url=${
         eventDefinition.localstackEndpoint
-      } kinesis put-record --stream-name ${
+      } kinesis put-records --stream-name ${
         eventDefinition.streamName
-      } --partition-key ${eventDefinition.partitionKey} --data ${Buffer.from(
-        JSON.stringify(kinesisEvents[0]),
-      ).toString('base64')}`,
+      } --records Data=${Buffer.from(JSON.stringify(kinesisEvents[0])).toString(
+        'base64',
+      )},PartitionKey=${eventDefinition.partitionKey} `,
     );
     expect(shell.execute).toHaveBeenNthCalledWith(
       2,
       `aws --endpoint-url=${
         eventDefinition.localstackEndpoint
-      } kinesis put-record --stream-name ${
+      } kinesis put-records --stream-name ${
         eventDefinition.streamName
-      } --partition-key ${eventDefinition.partitionKey} --data ${Buffer.from(
-        JSON.stringify(kinesisEvents[1]),
-      ).toString('base64')}`,
+      } --records Data=${Buffer.from(JSON.stringify(kinesisEvents[1])).toString(
+        'base64',
+      )},PartitionKey=${eventDefinition.partitionKey} `,
     );
     expect(shell.execute).toHaveBeenNthCalledWith(
       3,
       `aws --endpoint-url=${
         eventDefinition.localstackEndpoint
-      } kinesis put-record --stream-name ${
+      } kinesis put-records --stream-name ${
         eventDefinition.streamName
-      } --partition-key ${eventDefinition.partitionKey} --data ${Buffer.from(
-        JSON.stringify(kinesisEvents[2]),
-      ).toString('base64')}`,
+      } --records Data=${Buffer.from(JSON.stringify(kinesisEvents[2])).toString(
+        'base64',
+      )},PartitionKey=${eventDefinition.partitionKey} `,
     );
     expect(shell.execute).toHaveBeenNthCalledWith(
       4,
       `aws --endpoint-url=${
         eventDefinition.localstackEndpoint
-      } kinesis put-record --stream-name ${
+      } kinesis put-records --stream-name ${
         eventDefinition.streamName
-      } --partition-key ${eventDefinition.partitionKey} --data ${Buffer.from(
-        JSON.stringify(kinesisEvents[3]),
-      ).toString('base64')}`,
+      } --records Data=${Buffer.from(JSON.stringify(kinesisEvents[3])).toString(
+        'base64',
+      )},PartitionKey=${eventDefinition.partitionKey} `,
     );
   });
 
