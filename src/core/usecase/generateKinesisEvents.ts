@@ -4,6 +4,11 @@ import { FileSystem } from '../providers/FileSystem';
 import { Shell } from '../providers/Shell';
 import { JSONObject } from '../domain/JSONObject';
 
+const config = {
+  CHUNK_CHARACTER_LIMIT: 120000,
+  AWS_PUT_RECORDS_LIMIT: 500,
+};
+
 export type Operation = 'load' | 'insert' | 'update' | 'delete';
 export interface GenerateKinesisEventsInput {
   /**
@@ -107,14 +112,17 @@ export class GenerateKinesisEvents
   }
 
   private static generateCommandLine(params: {
-    payloadList: string[];
+    payloadList: Array<string>;
     streamName: string;
     partitionKey: string;
     endpoint: string;
     chunkSize: number;
-  }): string[] {
+  }): Array<string> {
+    GenerateKinesisEvents.measureBatchSize({
+      records: params.payloadList,
+      chunkSize: params.chunkSize,
+    });
     const commandList = [];
-
     for (let i = 0; i < params.payloadList.length; i += params.chunkSize) {
       const chunk = params.payloadList.slice(i, i + params.chunkSize);
       let command = `aws --endpoint-url=${params.endpoint} kinesis put-records --stream-name ${params.streamName} --records `;
@@ -123,8 +131,26 @@ export class GenerateKinesisEvents
       }
       commandList.push(command);
     }
-
     return commandList;
+  }
+
+  private static measureBatchSize(params: {
+    records: Array<string>;
+    chunkSize: number;
+  }): void {
+    let size = 0;
+    for (const payload of params.records) {
+      size += payload.length;
+    }
+    const suggestedChunkSize = +(
+      params.records.length /
+      (size / config.CHUNK_CHARACTER_LIMIT)
+    ).toFixed();
+    if (params.chunkSize > suggestedChunkSize) {
+      console.warn(
+        `WARNING: The current chunk size(${params.chunkSize}) has too many data per batch, try running it with ${suggestedChunkSize}`,
+      );
+    }
   }
 
   private static generateKinesisPayload(params: {
@@ -161,10 +187,10 @@ export class GenerateKinesisEvents
   }
 
   static validateChunkSize(chunkSize: string): string {
-    if (+chunkSize >= 1 && +chunkSize <= 500) {
+    if (+chunkSize >= 1 && +chunkSize <= config.AWS_PUT_RECORDS_LIMIT) {
       return chunkSize;
     }
-    const errorMessage = `Invalid chunk size ${chunkSize}. Please Make sure to select a number between 1 and 500`;
+    const errorMessage = `Invalid chunk size ${chunkSize}. Please Make sure to select a number between 1 and ${config.AWS_PUT_RECORDS_LIMIT}`;
     throw Error(errorMessage);
   }
 }
