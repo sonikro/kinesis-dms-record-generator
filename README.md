@@ -100,7 +100,7 @@ This JSON file will generate the following Kinesis Record
 | -c, --chunk-size <value> | chunk-size for batch processing | No | 1 |
 
 - *Valid operations: LOAD, INSERT, UPDATE and DELETE
-- *Valid chunk sizes: 1 to 500 (AWS limits)[https://docs.aws.amazon.com/cli/latest/reference/kinesis/put-records.html]
+- *Valid chunk sizes: 1 to 500 [AWS limits](https://docs.aws.amazon.com/cli/latest/reference/kinesis/put-records.html)
   
 The cli will load all files inside the **files** folder, and load them to the kinesis stream
 _By default it will load one by one but you can also add the --chunk-size <value> to put multiple records in batches_
