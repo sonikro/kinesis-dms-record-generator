@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import { GenerateKinesisEvents } from '../core/usecase/generateKinesisEvents';
 import { NodeFileSystem } from '../providers/NodeFileSystem';
 import { NodeShell } from '../providers/NodeShell';
+import { NodeProgressBar } from '../providers/NodeProgressBar';
 
 (async () => {
   const command = new Command();
@@ -45,6 +46,7 @@ import { NodeShell } from '../providers/NodeShell';
   const useCase = new GenerateKinesisEvents(
     new NodeFileSystem(),
     new NodeShell(),
+    new NodeProgressBar(),
   );
 
   await useCase.invoke({

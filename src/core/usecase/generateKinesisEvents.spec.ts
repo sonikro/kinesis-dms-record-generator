@@ -1,8 +1,10 @@
 import moment from 'moment';
+import cliProgress, { MultiBar } from 'cli-progress';
 import { GenerateKinesisEvents, Operation } from './generateKinesisEvents';
 import { FileSystem } from '../providers/FileSystem';
 import { Shell } from '../providers/Shell';
 import { JSONObject } from '../domain/JSONObject';
+import { ProgressBar } from '../providers/ProgressBar';
 
 describe('generateKinesisEvents', () => {
   const makeSut = () => {
@@ -13,6 +15,15 @@ describe('generateKinesisEvents', () => {
         NAME: 'Joselito',
       },
     ];
+    const progressBar: ProgressBar = {
+      createMultiBar: jest.fn().mockReturnValue({
+        create: jest.fn().mockReturnValue({
+          increment: jest.fn(),
+        }),
+        stop: jest.fn(),
+      }),
+    };
+
     const fileSystem: FileSystem = {
       readJsonFile: jest.fn().mockReturnValue(mockJsonContent),
       readDir: jest.fn().mockReturnValue(mockDirContent),
@@ -21,22 +32,35 @@ describe('generateKinesisEvents', () => {
     const shell: Shell = {
       execute: jest.fn(),
     };
-    const sut = new GenerateKinesisEvents(fileSystem, shell);
+
+    const sut = new GenerateKinesisEvents(fileSystem, shell, progressBar);
     return {
       sut,
       fileSystem,
       shell,
+      progressBar,
       mockJsonContent,
       mockDirContent,
     };
   };
 
-  it('correctly loads file and invoke AWS CLI to put-record on stream', async () => {
+  it('correctly loads file and invoke AWS CLI to put-records on stream', async () => {
     // Given
-    const { sut, fileSystem, shell, mockJsonContent, mockDirContent } =
-      makeSut();
+    const {
+      sut,
+      fileSystem,
+      shell,
+      mockJsonContent,
+      mockDirContent,
+      progressBar,
+    } = makeSut();
     const now = new Date();
     Date.now = jest.fn().mockReturnValue(now);
+    const expectedMultiBar = {
+      format:
+        '{fileName} [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} {dataType}',
+      preset: cliProgress.Presets.shades_classic,
+    };
     const expected = {
       partitionKey: '1',
       operation: 'load',
@@ -68,6 +92,7 @@ describe('generateKinesisEvents', () => {
     });
     // Then
     expect(fileSystem.readDir).toHaveBeenCalledWith(expected.recordFileDir);
+    expect(progressBar.createMultiBar).toHaveBeenCalledWith(expectedMultiBar);
     expect(fileSystem.readJsonFile).toHaveBeenCalledWith(
       `${expected.recordFileDir}/${expected.filename}`,
     );

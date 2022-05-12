@@ -1,8 +1,10 @@
 import moment from 'moment';
+import cliProgress from 'cli-progress';
 import { UseCase } from './UseCase';
 import { FileSystem } from '../providers/FileSystem';
 import { Shell } from '../providers/Shell';
 import { JSONObject } from '../domain/JSONObject';
+import { ProgressBar } from '../providers/ProgressBar';
 
 const config = {
   CHUNK_CHARACTER_LIMIT: 120000,
@@ -46,6 +48,7 @@ export class GenerateKinesisEvents
   constructor(
     private readonly fileSystem: FileSystem,
     private readonly shell: Shell,
+    private readonly progressBar: ProgressBar,
   ) {}
 
   async invoke(input: GenerateKinesisEventsInput): Promise<void> {
@@ -78,9 +81,20 @@ export class GenerateKinesisEvents
 
     console.log(
       `Running on the following order:\n${loadedFiles
-        .map((entry) => `${entry.order}-${entry.schema}-${entry.table}`)
+        .map((entry) => `\t${entry.order}-${entry.schema}-${entry.table}`)
         .join('\n')}`,
     );
+
+    const multiProgressBars = this.progressBar.createMultiBar({
+      format:
+        '{fileName} [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} {dataType}',
+      preset: cliProgress.Presets.shades_classic,
+    });
+
+    const totalProgress = multiProgressBars.create(filesToLoad.length, 0, {
+      fileName: 'TOTAL PROGRESS',
+      dataType: 'Files',
+    });
 
     for (const loadedFile of loadedFiles) {
       const content = Array.isArray(loadedFile.content)
@@ -104,11 +118,21 @@ export class GenerateKinesisEvents
         chunkSize: +chunkSize,
       });
 
+      const chunkProgressBar = multiProgressBars.create(
+        instructions.length,
+        0,
+        {
+          fileName: `${loadedFile.order}.${loadedFile.schema}.${loadedFile.table}`,
+          dataType: 'Chunks',
+        },
+      );
       for (const command of instructions) {
-        const stdout = await this.shell.execute(command);
-        console.log(stdout);
+        await this.shell.execute(command);
+        chunkProgressBar.increment();
       }
+      totalProgress.increment();
     }
+    multiProgressBars.stop();
   }
 
   private static generateCommandLine(params: {
@@ -118,13 +142,13 @@ export class GenerateKinesisEvents
     endpoint: string;
     chunkSize: number;
   }): Array<string> {
-    GenerateKinesisEvents.measureBatchSize({
+    const finalChunkSize: number = GenerateKinesisEvents.validateBatchSize({
       records: params.payloadList,
       chunkSize: params.chunkSize,
     });
     const commandList = [];
-    for (let i = 0; i < params.payloadList.length; i += params.chunkSize) {
-      const chunk = params.payloadList.slice(i, i + params.chunkSize);
+    for (let i = 0; i < params.payloadList.length; i += finalChunkSize) {
+      const chunk = params.payloadList.slice(i, i + finalChunkSize);
       let command = `aws --endpoint-url=${params.endpoint} kinesis put-records --stream-name ${params.streamName} --records `;
       for (const payload of chunk) {
         command += `Data=${payload},PartitionKey=${params.partitionKey} `;
@@ -134,23 +158,25 @@ export class GenerateKinesisEvents
     return commandList;
   }
 
-  private static measureBatchSize(params: {
+  private static validateBatchSize(params: {
     records: Array<string>;
     chunkSize: number;
-  }): void {
-    let size = 0;
+  }): number {
+    let totalPayloadsSize = 0;
     for (const payload of params.records) {
-      size += payload.length;
+      totalPayloadsSize += payload.length;
     }
     const suggestedChunkSize = +(
       params.records.length /
-      (size / config.CHUNK_CHARACTER_LIMIT)
+      (totalPayloadsSize / config.CHUNK_CHARACTER_LIMIT)
     ).toFixed();
     if (params.chunkSize > suggestedChunkSize) {
       console.warn(
-        `WARNING: The current chunk size(${params.chunkSize}) has too many data per batch, try running it with ${suggestedChunkSize}`,
+        `WARNING: The current chunk size ${params.chunkSize} was reduced to ${suggestedChunkSize} to avoid exceeding shell character limit`,
       );
+      return suggestedChunkSize;
     }
+    return params.chunkSize;
   }
 
   private static generateKinesisPayload(params: {
