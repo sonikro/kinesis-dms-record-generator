@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { GenerateKinesisEvents } from '../core/usecase/generateKinesisEvents';
+import { GenerateKinesisEvents } from '../core/usecase/GenerateKinesisEvents';
+import { KinesisAdapter } from '../providers/KinesisAdapter';
 import { NodeFileSystem } from '../providers/NodeFileSystem';
-import { NodeShell } from '../providers/NodeShell';
 import { NodeProgressBar } from '../providers/NodeProgressBar';
 
 (async () => {
-  const command = new Command();
-  command
+  const program = new Command();
+  program
     .requiredOption(
       '-d, --directory <value>',
       'directory where the JSON files are located',
@@ -33,30 +33,33 @@ import { NodeProgressBar } from '../providers/NodeProgressBar';
       GenerateKinesisEvents.validateOperation,
       'load',
     )
-    .option(
-      '-c, --chunk-size <value>',
-      'chunk-size for batch processing (1 to 500)',
-      GenerateKinesisEvents.validateChunkSize,
-      '1',
-    )
     .parse();
 
-  const response = command.opts();
-
+  const response = program.opts();
   const useCase = new GenerateKinesisEvents(
     new NodeFileSystem(),
-    new NodeShell(),
     new NodeProgressBar(),
+    new KinesisAdapter(
+      response.localstackEndpoint,
+      response.streamName,
+      response.partitionKey,
+    ),
   );
 
-  await useCase.invoke({
-    recordFileDir: response.directory,
-    streamName: response.streamName,
-    partitionKey: response.partitionKey,
-    localstackEndpoint: response.localstackEndpoint,
-    operation: response.operation,
-    chunkSize: response.chunkSize,
-  });
-
-  console.log(response);
+  try {
+    await useCase.invoke({
+      recordFileDir: response.directory,
+      streamName: response.streamName,
+      partitionKey: response.partitionKey,
+      localstackEndpoint: response.localstackEndpoint,
+      operation: response.operation,
+    });
+    console.info(response);
+  } catch (err: any) {
+    console.error('Error running cli', {
+      error: err.message,
+    });
+    program.outputHelp();
+    process.exit(1);
+  }
 })();

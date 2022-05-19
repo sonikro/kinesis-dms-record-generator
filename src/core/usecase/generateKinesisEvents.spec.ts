@@ -1,12 +1,12 @@
+import cliProgress from 'cli-progress';
 import moment from 'moment';
-import cliProgress, { MultiBar } from 'cli-progress';
-import { GenerateKinesisEvents, Operation } from './generateKinesisEvents';
-import { FileSystem } from '../providers/FileSystem';
-import { Shell } from '../providers/Shell';
 import { JSONObject } from '../domain/JSONObject';
+import { FileSystem } from '../providers/FileSystem';
 import { ProgressBar } from '../providers/ProgressBar';
+import { StreamClient } from '../providers/StreamClient';
+import { GenerateKinesisEvents, Operation } from './GenerateKinesisEvents';
 
-describe('generateKinesisEvents', () => {
+describe('GenerateKinesisEvents', () => {
   const makeSut = () => {
     const mockDirContent = ['1.schema1.table1.json'];
     const mockJsonContent: JSONObject[] = [
@@ -29,15 +29,18 @@ describe('generateKinesisEvents', () => {
       readDir: jest.fn().mockReturnValue(mockDirContent),
     };
 
-    const shell: Shell = {
-      execute: jest.fn(),
+    const streamClient: StreamClient = {
+      send: jest.fn(),
     };
 
-    const sut = new GenerateKinesisEvents(fileSystem, shell, progressBar);
+    const sut = new GenerateKinesisEvents(
+      fileSystem,
+      progressBar,
+      streamClient,
+    );
     return {
       sut,
       fileSystem,
-      shell,
       progressBar,
       mockJsonContent,
       mockDirContent,
@@ -46,14 +49,8 @@ describe('generateKinesisEvents', () => {
 
   it('correctly loads file and invoke AWS CLI to put-records on stream', async () => {
     // Given
-    const {
-      sut,
-      fileSystem,
-      shell,
-      mockJsonContent,
-      mockDirContent,
-      progressBar,
-    } = makeSut();
+    const { sut, fileSystem, mockJsonContent, mockDirContent, progressBar } =
+      makeSut();
     const now = new Date();
     Date.now = jest.fn().mockReturnValue(now);
     const expectedMultiBar = {
@@ -88,7 +85,6 @@ describe('generateKinesisEvents', () => {
       streamName: expected.streamName,
       recordFileDir: expected.recordFileDir,
       localstackEndpoint: expected.localstackEndpoint,
-      chunkSize: +expected.chunkSize,
     });
     // Then
     expect(fileSystem.readDir).toHaveBeenCalledWith(expected.recordFileDir);
@@ -128,7 +124,6 @@ describe('generateKinesisEvents', () => {
         streamName: expected.streamName,
         recordFileDir: expected.recordFileDir,
         localstackEndpoint: expected.localstackEndpoint,
-        chunkSize: +expected.chunkSize,
       });
     };
     // Then
@@ -185,7 +180,6 @@ describe('generateKinesisEvents', () => {
       streamName: eventDefinition.streamName,
       recordFileDir: eventDefinition.recordFileDir,
       localstackEndpoint: eventDefinition.localstackEndpoint,
-      chunkSize: +eventDefinition.chunkSize,
     });
 
     // Then
@@ -249,19 +243,6 @@ describe('generateKinesisEvents', () => {
     const expectedOperation = 'load';
     const operation = GenerateKinesisEvents.validateOperation('load');
     expect(operation).toBe(expectedOperation);
-  });
-
-  it('should return the chunkSize if is valid', () => {
-    const expectedChunkSize = '1';
-    const chunkSize = GenerateKinesisEvents.validateChunkSize('1');
-    expect(chunkSize).toBe(expectedChunkSize);
-  });
-
-  it('should throw an error if operation is not valid', () => {
-    const invalidChunkSize = '0';
-    const expectedErrorMessage = `Invalid chunk size ${invalidChunkSize}. Please Make sure to select a number between 1 and 500`;
-    const act = () => GenerateKinesisEvents.validateChunkSize(invalidChunkSize);
-    expect(act).toThrow(expectedErrorMessage);
   });
 
   it('should throw an error if operation is not valid', () => {
