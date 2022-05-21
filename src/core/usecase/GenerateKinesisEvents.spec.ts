@@ -4,7 +4,7 @@ import { JSONObject } from '../domain/JSONObject';
 import { FileSystem } from '../providers/FileSystem';
 import { KinesisClient } from '../providers/KinesisClient';
 import { ProgressBar } from '../providers/ProgressBar';
-import { GenerateKinesisEvents, Operation } from './generateKinesisEvents';
+import { GenerateKinesisEvents, Operation } from './GenerateKinesisEvents';
 
 describe('GenerateKinesisEvents', () => {
   const makeSut = () => {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { GenerateKinesisEvents } from '../core/usecase/generateKinesisEvents';
+import { GenerateKinesisEvents } from '../core/usecase/GenerateKinesisEvents';
 import { KinesisClientAdapter } from '../providers/KinesisClientAdapter';
 import { NodeFileSystem } from '../providers/NodeFileSystem';
 import { NodeProgressBar } from '../providers/NodeProgressBar';
