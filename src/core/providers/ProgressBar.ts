@@ -1,10 +1,13 @@
-import { MultiBar, Preset } from 'cli-progress';
+import { MultiBar, Options, SingleBar } from 'cli-progress';
 
 export type ProgressBarOptions = {
-  format: string;
-  preset: Preset;
+  total: number;
+  startValue: number;
+  payload?: any;
+  barOptions?: Options;
 };
 
 export interface ProgressBar {
-  createMultiBar(options: ProgressBarOptions): MultiBar;
+  getMultiBar(): MultiBar;
+  createSingleBar(options: ProgressBarOptions): SingleBar;
 }
