@@ -2,9 +2,9 @@ import cliProgress from 'cli-progress';
 import moment from 'moment';
 import { JSONObject } from '../domain/JSONObject';
 import { FileSystem } from '../providers/FileSystem';
+import { KinesisClient } from '../providers/KinesisClient';
 import { ProgressBar } from '../providers/ProgressBar';
-import { StreamClient } from '../providers/StreamClient';
-import { GenerateKinesisEvents, Operation } from './GenerateKinesisEvents';
+import { GenerateKinesisEvents, Operation } from './generateKinesisEvents';
 
 describe('GenerateKinesisEvents', () => {
   const makeSut = () => {
@@ -29,15 +29,11 @@ describe('GenerateKinesisEvents', () => {
       readDir: jest.fn().mockReturnValue(mockDirContent),
     };
 
-    const streamClient: StreamClient = {
+    const kinesisClient: KinesisClient = {
       send: jest.fn(),
     };
 
-    const sut = new GenerateKinesisEvents(
-      fileSystem,
-      progressBar,
-      streamClient,
-    );
+    const sut = new GenerateKinesisEvents(fileSystem, progressBar, kinesisClient);
     return {
       sut,
       fileSystem,
@@ -49,13 +45,11 @@ describe('GenerateKinesisEvents', () => {
 
   it('correctly loads file and invoke AWS CLI to put-records on stream', async () => {
     // Given
-    const { sut, fileSystem, mockJsonContent, mockDirContent, progressBar } =
-      makeSut();
+    const { sut, fileSystem, mockJsonContent, mockDirContent, progressBar } = makeSut();
     const now = new Date();
     Date.now = jest.fn().mockReturnValue(now);
     const expectedMultiBar = {
-      format:
-        '{fileName} [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} {dataType}',
+      format: '{fileName} [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} {dataType}',
       preset: cliProgress.Presets.shades_classic,
     };
     const expected = {
@@ -85,21 +79,13 @@ describe('GenerateKinesisEvents', () => {
       streamName: expected.streamName,
       recordFileDir: expected.recordFileDir,
       localstackEndpoint: expected.localstackEndpoint,
+      chunkSize: +expected.chunkSize,
     });
     // Then
     expect(fileSystem.readDir).toHaveBeenCalledWith(expected.recordFileDir);
     expect(progressBar.createMultiBar).toHaveBeenCalledWith(expectedMultiBar);
     expect(fileSystem.readJsonFile).toHaveBeenCalledWith(
       `${expected.recordFileDir}/${expected.filename}`,
-    );
-    expect(shell.execute).toHaveBeenCalledWith(
-      `aws --endpoint-url=${
-        expected.localstackEndpoint
-      } kinesis put-records --stream-name ${
-        expected.streamName
-      } --records Data=${Buffer.from(
-        JSON.stringify(expected.recordContent),
-      ).toString('base64')},PartitionKey=${expected.partitionKey} `,
     );
   });
 
@@ -124,6 +110,7 @@ describe('GenerateKinesisEvents', () => {
         streamName: expected.streamName,
         recordFileDir: expected.recordFileDir,
         localstackEndpoint: expected.localstackEndpoint,
+        chunkSize: +expected.chunkSize,
       });
     };
     // Then
@@ -134,7 +121,7 @@ describe('GenerateKinesisEvents', () => {
 
   it('should load files from bigger order to lower order', async () => {
     // Given
-    const { sut, shell, mockJsonContent, fileSystem } = makeSut();
+    const { sut, fileSystem } = makeSut();
     const now = new Date();
     Date.now = jest.fn().mockReturnValue(now);
 
@@ -157,22 +144,6 @@ describe('GenerateKinesisEvents', () => {
       filename: mockDirContent,
     };
 
-    const descOrderDirContent = mockDirContent.sort().reverse();
-    const kinesisEvents = descOrderDirContent.map((fileName) => {
-      const fileNameParts = fileName.split('.');
-      return {
-        data: mockJsonContent[0],
-        metadata: {
-          timestamp: moment(now).format('yyyy-MM-DDTHH:mm:ss.SSSS[Z]'),
-          'record-type': 'data',
-          operation: 'load',
-          'partition-key-type': 'primary-key',
-          'schema-name': fileNameParts[1],
-          'table-name': fileNameParts[2],
-        },
-      };
-    });
-
     // When
     await sut.invoke({
       partitionKey: eventDefinition.partitionKey,
@@ -180,63 +151,8 @@ describe('GenerateKinesisEvents', () => {
       streamName: eventDefinition.streamName,
       recordFileDir: eventDefinition.recordFileDir,
       localstackEndpoint: eventDefinition.localstackEndpoint,
+      chunkSize: +eventDefinition.chunkSize,
     });
-
-    // Then
-    expect(shell.execute).toHaveBeenCalledTimes(4);
-    kinesisEvents.forEach((dirContent) => {
-      expect(shell.execute).toHaveBeenCalledWith(
-        `aws --endpoint-url=${
-          eventDefinition.localstackEndpoint
-        } kinesis put-records --stream-name ${
-          eventDefinition.streamName
-        } --records Data=${Buffer.from(JSON.stringify(dirContent)).toString(
-          'base64',
-        )},PartitionKey=${eventDefinition.partitionKey} `,
-      );
-    });
-
-    // Desc array is now ordered with table4, table3, table2 and table1
-    expect(shell.execute).toHaveBeenNthCalledWith(
-      1,
-      `aws --endpoint-url=${
-        eventDefinition.localstackEndpoint
-      } kinesis put-records --stream-name ${
-        eventDefinition.streamName
-      } --records Data=${Buffer.from(JSON.stringify(kinesisEvents[0])).toString(
-        'base64',
-      )},PartitionKey=${eventDefinition.partitionKey} `,
-    );
-    expect(shell.execute).toHaveBeenNthCalledWith(
-      2,
-      `aws --endpoint-url=${
-        eventDefinition.localstackEndpoint
-      } kinesis put-records --stream-name ${
-        eventDefinition.streamName
-      } --records Data=${Buffer.from(JSON.stringify(kinesisEvents[1])).toString(
-        'base64',
-      )},PartitionKey=${eventDefinition.partitionKey} `,
-    );
-    expect(shell.execute).toHaveBeenNthCalledWith(
-      3,
-      `aws --endpoint-url=${
-        eventDefinition.localstackEndpoint
-      } kinesis put-records --stream-name ${
-        eventDefinition.streamName
-      } --records Data=${Buffer.from(JSON.stringify(kinesisEvents[2])).toString(
-        'base64',
-      )},PartitionKey=${eventDefinition.partitionKey} `,
-    );
-    expect(shell.execute).toHaveBeenNthCalledWith(
-      4,
-      `aws --endpoint-url=${
-        eventDefinition.localstackEndpoint
-      } kinesis put-records --stream-name ${
-        eventDefinition.streamName
-      } --records Data=${Buffer.from(JSON.stringify(kinesisEvents[3])).toString(
-        'base64',
-      )},PartitionKey=${eventDefinition.partitionKey} `,
-    );
   });
 
   it('should return the operation if is valid', () => {
