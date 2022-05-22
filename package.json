@@ -18,7 +18,7 @@
     "start": "ts-node src/entrypoints/cli.ts",
     "build": "tsc",
     "prepublish": "tsc",
-    "test": "jest --coverage",
+    "test": "jest --coverage --config=jest.config.js",
     "lint": "eslint --config=.eslintrc.json src/**/*.ts",
     "lint:fix": "yarn lint --fix"
   },
