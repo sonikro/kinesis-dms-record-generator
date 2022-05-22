@@ -1,6 +1,5 @@
-import moment from 'moment';
 import { GenerateKinesisEvents, Operation } from '.';
-import { JSONObject } from '../../domain/JSONObject';
+import { mockDMSPayload, mockJsonPayloads, streamProps } from '../../../test/mocks';
 import { FileSystem } from '../../providers/FileSystem';
 import { KinesisClient } from '../../providers/KinesisClient';
 import { ProgressBar } from '../../providers/ProgressBar';
@@ -8,12 +7,6 @@ import { ProgressBar } from '../../providers/ProgressBar';
 describe('GenerateKinesisEvents', () => {
   const makeSut = () => {
     const mockDirContent = ['1.schema1.table1.json'];
-    const mockJsonContent: JSONObject[] = [
-      {
-        ID: 1,
-        NAME: 'Joselito',
-      },
-    ];
     const progressBarFunctions = {
       create: jest.fn().mockReturnValue({
         increment: jest.fn(),
@@ -26,66 +19,75 @@ describe('GenerateKinesisEvents', () => {
         increment: jest.fn(),
       }),
     };
-
     const fileSystem: FileSystem = {
-      readJsonFile: jest.fn().mockReturnValue(mockJsonContent),
+      readJsonFile: jest.fn().mockReturnValue(mockJsonPayloads),
       readDir: jest.fn().mockReturnValue(mockDirContent),
     };
-
     const kinesisClient: KinesisClient = {
       send: jest.fn(),
     };
-
     const sut = new GenerateKinesisEvents(fileSystem, progressBar, kinesisClient);
     return {
       sut,
       fileSystem,
       progressBar,
-      mockJsonContent,
+      kinesisClient,
+      mockJsonContent: mockJsonPayloads,
       mockDirContent,
     };
   };
 
-  it('correctly loads file and invoke AWS CLI to put-records on stream', async () => {
+  it('correctly loads file and invoke KinesisClient to put-records on stream with chunk size bigger than 1', async () => {
     // Given
-    const { sut, fileSystem, mockJsonContent, mockDirContent, progressBar } = makeSut();
-    const now = new Date();
+    const { sut, fileSystem, mockDirContent, progressBar, kinesisClient } = makeSut();
+    const now = new Date('2022-05-22T10:00:00');
     Date.now = jest.fn().mockReturnValue(now);
-    const expected = {
-      partitionKey: '1',
-      operation: 'load',
-      streamName: 'stream-name',
-      recordFileDir: 'fileDir',
-      localstackEndpoint: 'http://localhost:4566',
-      chunkSize: '1',
+    const streamProperties = {
+      ...streamProps,
       filename: mockDirContent[0],
-      recordContent: {
-        data: mockJsonContent[0],
-        metadata: {
-          timestamp: moment(now).format('yyyy-MM-DDTHH:mm:ss.SSSS[Z]'),
-          'record-type': 'data',
-          operation: 'load',
-          'partition-key-type': 'primary-key',
-          'schema-name': 'schema1',
-          'table-name': 'table1',
-        },
-      },
     };
+
     // When
     await sut.invoke({
-      partitionKey: expected.partitionKey,
-      operation: expected.operation as Operation,
-      streamName: expected.streamName,
-      recordFileDir: expected.recordFileDir,
-      localstackEndpoint: expected.localstackEndpoint,
-      chunkSize: +expected.chunkSize,
+      partitionKey: streamProperties.partitionKey,
+      operation: 'load' as Operation,
+      streamName: streamProperties.streamName,
+      recordFileDir: streamProperties.recordFileDir,
+      localstackEndpoint: streamProperties.endpoint,
+      chunkSize: +streamProperties.chunkSize,
     });
     // Then
-    expect(fileSystem.readDir).toHaveBeenCalledWith(expected.recordFileDir);
+    expect(fileSystem.readDir).toHaveBeenCalledWith(streamProperties.recordFileDir);
     expect(progressBar.getMultiBar).toHaveBeenCalled();
     expect(fileSystem.readJsonFile).toHaveBeenCalledWith(
-      `${expected.recordFileDir}/${expected.filename}`,
+      `${streamProperties.recordFileDir}/${streamProperties.filename}`,
     );
+    expect(kinesisClient.send).toHaveBeenCalledWith(mockDMSPayload);
+  });
+  it('correctly loads file and invoke KinesisClient to put-records on stream with chunk size 1', async () => {
+    // Given
+    const { sut, mockDirContent, kinesisClient } = makeSut();
+    const now = new Date('2022-05-22T10:00:00');
+    Date.now = jest.fn().mockReturnValue(now);
+    const streamProperties = {
+      ...streamProps,
+      filename: mockDirContent[0],
+      chunkSize: '1',
+    };
+
+    // When
+    await sut.invoke({
+      partitionKey: streamProperties.partitionKey,
+      operation: 'load' as Operation,
+      streamName: streamProperties.streamName,
+      recordFileDir: streamProperties.recordFileDir,
+      localstackEndpoint: streamProperties.endpoint,
+      chunkSize: +streamProperties.chunkSize,
+    });
+    // Then
+    const [firstChunk, secondChunk] = mockDMSPayload;
+    expect(kinesisClient.send).toHaveBeenNthCalledWith(1, [firstChunk]);
+    expect(kinesisClient.send).toHaveBeenNthCalledWith(2, [secondChunk]);
   });
 
   it('throws error if filename is incorrect', async () => {
