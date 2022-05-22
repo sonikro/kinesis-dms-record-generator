@@ -46,8 +46,7 @@ export default class File {
     const fileParts = filename.split('.');
     if (fileParts.length < 4) {
       throw new Error(
-        `Invalid file name ${filename}. 
-        Files should follow the pattern order.schema.table.json`,
+        `Invalid file name ${filename}. Files should follow the pattern order.schema.table.json`,
       );
     }
     return fileParts;

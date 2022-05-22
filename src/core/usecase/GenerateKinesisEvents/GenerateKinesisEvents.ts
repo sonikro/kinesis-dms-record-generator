@@ -1,45 +1,11 @@
 import moment from 'moment';
-import File from '../domain/File';
-import { JSONObject } from '../domain/JSONObject';
-import { FileSystem } from '../providers/FileSystem';
-import { KinesisClient } from '../providers/KinesisClient';
-import { ProgressBar } from '../providers/ProgressBar';
-import { UseCase } from './UseCase';
-
-export type Operation = 'load' | 'insert' | 'update' | 'delete';
-export interface GenerateKinesisEventsInput {
-  /**
-   * The name of the kinesis stream running in your localstack
-   */
-  streamName: string;
-  /**
-   * The partition key to PutRecords
-   */
-  partitionKey: string;
-  /**
-   * The path where all the JSON files are located
-   */
-  recordFileDir: string;
-  /**
-   * The type of operation you want to simulate
-   */
-  operation: Operation;
-  /**
-   * Localstack Endpoint
-   */
-  localstackEndpoint: string;
-  /**
-   * Flag to indicate you want to process as batch
-   */
-  chunkSize: number;
-}
-
-export interface GenerateKinesisEventsOutput extends GenerateKinesisEventsInput {
-  /**
-   * Total of loaded JSON to kinesis stream
-   */
-  totalLoadedJson: number;
-}
+import { GenerateKinesisEventsInput, GenerateKinesisEventsOutput } from '.';
+import File from '../../domain/File';
+import { JSONObject } from '../../domain/JSONObject';
+import { FileSystem } from '../../providers/FileSystem';
+import { KinesisClient } from '../../providers/KinesisClient';
+import { ProgressBar } from '../../providers/ProgressBar';
+import { UseCase } from '../UseCase';
 
 /**
  * This use case will load JSON files, and automatically simulate PutRecords on your Localstack Kinesis
@@ -74,7 +40,7 @@ export class GenerateKinesisEvents
       },
     });
 
-    let totalLoadedJson = 0;
+    let loadedRecords = 0;
     for (const file of files) {
       const content = Array.isArray(file.content) ? file.content : [file.content];
       const payloads = content.map((record: JSONObject) =>
@@ -103,7 +69,7 @@ export class GenerateKinesisEvents
         );
         sliceInitialIndex += input.chunkSize;
         await this.kinesisClient.send(payloadChunks);
-        totalLoadedJson += payloadChunks.length;
+        loadedRecords += payloadChunks.length;
         chunkProgressBar.increment();
       }
       totalProgressBar.increment();
@@ -112,7 +78,7 @@ export class GenerateKinesisEvents
 
     return {
       ...input,
-      totalLoadedJson,
+      loadedRecords,
     };
   }
 

@@ -1,10 +1,9 @@
-import cliProgress from 'cli-progress';
 import moment from 'moment';
-import { JSONObject } from '../domain/JSONObject';
-import { FileSystem } from '../providers/FileSystem';
-import { KinesisClient } from '../providers/KinesisClient';
-import { ProgressBar } from '../providers/ProgressBar';
-import { GenerateKinesisEvents, Operation } from './GenerateKinesisEvents';
+import { GenerateKinesisEvents, Operation } from '.';
+import { JSONObject } from '../../domain/JSONObject';
+import { FileSystem } from '../../providers/FileSystem';
+import { KinesisClient } from '../../providers/KinesisClient';
+import { ProgressBar } from '../../providers/ProgressBar';
 
 describe('GenerateKinesisEvents', () => {
   const makeSut = () => {
@@ -15,12 +14,16 @@ describe('GenerateKinesisEvents', () => {
         NAME: 'Joselito',
       },
     ];
+    const progressBarFunctions = {
+      create: jest.fn().mockReturnValue({
+        increment: jest.fn(),
+      }),
+      stop: jest.fn(),
+    };
     const progressBar: ProgressBar = {
-      createMultiBar: jest.fn().mockReturnValue({
-        create: jest.fn().mockReturnValue({
-          increment: jest.fn(),
-        }),
-        stop: jest.fn(),
+      getMultiBar: jest.fn().mockReturnValue(progressBarFunctions),
+      createSingleBar: jest.fn().mockReturnValue({
+        increment: jest.fn(),
       }),
     };
 
@@ -48,10 +51,6 @@ describe('GenerateKinesisEvents', () => {
     const { sut, fileSystem, mockJsonContent, mockDirContent, progressBar } = makeSut();
     const now = new Date();
     Date.now = jest.fn().mockReturnValue(now);
-    const expectedMultiBar = {
-      format: '{fileName} [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} {dataType}',
-      preset: cliProgress.Presets.shades_classic,
-    };
     const expected = {
       partitionKey: '1',
       operation: 'load',
@@ -83,7 +82,7 @@ describe('GenerateKinesisEvents', () => {
     });
     // Then
     expect(fileSystem.readDir).toHaveBeenCalledWith(expected.recordFileDir);
-    expect(progressBar.createMultiBar).toHaveBeenCalledWith(expectedMultiBar);
+    expect(progressBar.getMultiBar).toHaveBeenCalled();
     expect(fileSystem.readJsonFile).toHaveBeenCalledWith(
       `${expected.recordFileDir}/${expected.filename}`,
     );
@@ -165,6 +164,19 @@ describe('GenerateKinesisEvents', () => {
     const invalidOperation = 'banana';
     const expectedErrorMessage = `Invalid operation ${invalidOperation}. Please Make sure to select one of the following: [LOAD, INSERT, UPDATE, DELETE]`;
     const act = () => GenerateKinesisEvents.validateOperation(invalidOperation);
+    expect(act).toThrow(expectedErrorMessage);
+  });
+
+  it('should return the chunkSize if is valid', () => {
+    const expectedChunkSize = '1';
+    const chunkSize = GenerateKinesisEvents.validateChunkSize('1');
+    expect(chunkSize).toBe(expectedChunkSize);
+  });
+
+  it('should throw an error if chunkSize is not valid', () => {
+    const invalidChunkSize = '0';
+    const expectedErrorMessage = `Invalid chunk size ${invalidChunkSize}. Please Make sure to select a number between 1 and 500`;
+    const act = () => GenerateKinesisEvents.validateChunkSize(invalidChunkSize);
     expect(act).toThrow(expectedErrorMessage);
   });
 });
