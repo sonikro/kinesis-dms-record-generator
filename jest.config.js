@@ -7,7 +7,7 @@ module.exports = {
   testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/coverage/', '<rootDir>/dist/'],
   watchPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/coverage/', '<rootDir>/dist/'],
   collectCoverage: true,
-  collectCoverageFrom: ['**/*.ts', '!**/cli.ts'],
+  collectCoverageFrom: ['**/*.ts', '!**/cli.ts', '!**/mocks.ts'],
   coverageDirectory: './coverage',
   coverageReporters: ['lcov', 'text'],
   coverageThreshold: {

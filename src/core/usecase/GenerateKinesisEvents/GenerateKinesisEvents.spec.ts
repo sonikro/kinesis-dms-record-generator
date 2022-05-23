@@ -7,16 +7,17 @@ import { ProgressBar } from '../../providers/ProgressBar';
 describe('GenerateKinesisEvents', () => {
   const makeSut = () => {
     const mockDirContent = ['1.schema1.table1.json'];
+    const singleBarIncrement = jest.fn();
     const progressBarFunctions = {
       create: jest.fn().mockReturnValue({
-        increment: jest.fn(),
+        increment: singleBarIncrement,
       }),
       stop: jest.fn(),
     };
     const progressBar: ProgressBar = {
       getMultiBar: jest.fn().mockReturnValue(progressBarFunctions),
       createSingleBar: jest.fn().mockReturnValue({
-        increment: jest.fn(),
+        increment: singleBarIncrement,
       }),
     };
     const fileSystem: FileSystem = {
@@ -34,17 +35,20 @@ describe('GenerateKinesisEvents', () => {
       kinesisClient,
       mockJsonContent: mockJsonPayloads,
       mockDirContent,
+      singleBarIncrement,
     };
   };
 
-  it('correctly loads file and invoke KinesisClient to put-records on stream with chunk size bigger than 1', async () => {
+  it('correctly loads file and invoke KinesisClient to put-records on stream with chunk size bigger than 1 (chunkSize = 10)', async () => {
     // Given
-    const { sut, fileSystem, mockDirContent, progressBar, kinesisClient } = makeSut();
+    const { sut, fileSystem, mockDirContent, progressBar, kinesisClient, singleBarIncrement } =
+      makeSut();
     const now = new Date('2022-05-22T10:00:00');
     Date.now = jest.fn().mockReturnValue(now);
     const streamProperties = {
       ...streamProps,
       filename: mockDirContent[0],
+      chunkSize: '10',
     };
 
     // When
@@ -63,6 +67,7 @@ describe('GenerateKinesisEvents', () => {
       `${streamProperties.recordFileDir}/${streamProperties.filename}`,
     );
     expect(kinesisClient.send).toHaveBeenCalledWith(mockDMSPayload);
+    expect(singleBarIncrement).toHaveBeenCalled();
   });
   it('correctly loads file and invoke KinesisClient to put-records on stream with chunk size 1', async () => {
     // Given
@@ -88,6 +93,33 @@ describe('GenerateKinesisEvents', () => {
     const [firstChunk, secondChunk] = mockDMSPayload;
     expect(kinesisClient.send).toHaveBeenNthCalledWith(1, [firstChunk]);
     expect(kinesisClient.send).toHaveBeenNthCalledWith(2, [secondChunk]);
+  });
+
+  it('correctly loads file and invoke KinesisClient to put-records on stream with chunk size 1 using a single json', async () => {
+    // Given
+    const { sut, mockDirContent, kinesisClient, fileSystem } = makeSut();
+    const now = new Date('2022-05-22T10:00:00');
+    const [firstJson] = mockJsonPayloads;
+    fileSystem.readJsonFile = jest.fn().mockReturnValue(firstJson);
+    Date.now = jest.fn().mockReturnValue(now);
+    const streamProperties = {
+      ...streamProps,
+      filename: mockDirContent[0],
+      chunkSize: '1',
+    };
+
+    // When
+    await sut.invoke({
+      partitionKey: streamProperties.partitionKey,
+      operation: 'load' as Operation,
+      streamName: streamProperties.streamName,
+      recordFileDir: streamProperties.recordFileDir,
+      localstackEndpoint: streamProperties.endpoint,
+      chunkSize: +streamProperties.chunkSize,
+    });
+    // Then
+    const [firstChunk] = mockDMSPayload;
+    expect(kinesisClient.send).toHaveBeenNthCalledWith(1, [firstChunk]);
   });
 
   it('throws error if filename is incorrect', async () => {
