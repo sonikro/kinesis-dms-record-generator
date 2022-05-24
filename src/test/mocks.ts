@@ -55,3 +55,10 @@ export const mockDMSPayload = [
     },
   },
 ];
+
+export const mockDirContent = [
+  '1.schema1.table1.json',
+  '3.schema3.table3.json',
+  '4.schema4.table4.json',
+  '2.schema2.table2.json',
+];
