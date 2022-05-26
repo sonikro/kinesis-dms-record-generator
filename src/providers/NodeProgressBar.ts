@@ -4,8 +4,8 @@ import { ProgressBar, ProgressBarOptions } from '../core/providers/ProgressBar';
 export class NodeProgressBar implements ProgressBar {
   readonly multiBar: MultiBar;
 
-  constructor() {
-    this.multiBar = this.createMultiBar();
+  constructor(cliFormat?: string) {
+    this.multiBar = this.createMultiBar(cliFormat);
   }
 
   getMultiBar(): MultiBar {
@@ -17,7 +17,7 @@ export class NodeProgressBar implements ProgressBar {
     return this.multiBar.create(total, startValue, payload, barOptions);
   }
 
-  private createMultiBar(cliFormat?: string): MultiBar {
+  createMultiBar(cliFormat?: string): MultiBar {
     const defaultFormat =
       '{fileName} [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} {dataType}';
     const format = cliFormat ?? defaultFormat;
