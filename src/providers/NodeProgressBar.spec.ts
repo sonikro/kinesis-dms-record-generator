@@ -6,10 +6,8 @@ describe('NodeProgressBar', () => {
   it('should get a instance of a multi bar', () => {
     // Given
     const multibar = new NodeProgressBar();
-
     // When
     const response = multibar.getMultiBar();
-
     // Then
     expect(response).toBeInstanceOf(MultiBar);
     multibar.multiBar.stop();
@@ -29,7 +27,6 @@ describe('NodeProgressBar', () => {
     const spyCreateSingleBar = jest.spyOn(multibar, 'createSingleBar');
     // When
     multibar.createSingleBar(mockedOptions);
-
     // Then
     expect(spyCreateSingleBar).toHaveBeenCalledWith(mockedOptions);
     multibar.multiBar.stop();
@@ -42,7 +39,6 @@ describe('NodeProgressBar', () => {
     // When
     const spyCreateMultiBar = jest.spyOn(multibar, 'createMultiBar');
     multibar.createMultiBar(cliFormat);
-
     // Then
     expect(spyCreateMultiBar).toHaveBeenCalledWith(cliFormat);
     multibar.multiBar.stop();
@@ -54,7 +50,6 @@ describe('NodeProgressBar', () => {
     // When
     const spyCreateMultiBar = jest.spyOn(multibar, 'createMultiBar');
     multibar.createMultiBar();
-
     // Then
     expect(spyCreateMultiBar).toHaveBeenCalledWith();
     multibar.multiBar.stop();
