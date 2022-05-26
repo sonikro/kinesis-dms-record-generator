@@ -47,4 +47,16 @@ describe('NodeProgressBar', () => {
     expect(spyCreateMultiBar).toHaveBeenCalledWith(cliFormat);
     multibar.multiBar.stop();
   });
+
+  it('should create a multi bar without cliFormat', () => {
+    // Given
+    const multibar = new NodeProgressBar();
+    // When
+    const spyCreateMultiBar = jest.spyOn(multibar, 'createMultiBar');
+    multibar.createMultiBar();
+
+    // Then
+    expect(spyCreateMultiBar).toHaveBeenCalledWith();
+    multibar.multiBar.stop();
+  });
 });
