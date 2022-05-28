@@ -26,9 +26,6 @@
     "no-useless-constructor": "off",
     "class-methods-use-this": "off",
     "@typescript-eslint/no-explicit-any": "off",
-    "no-restricted-syntax": "off",
-    "no-await-in-loop": "off",
-    "no-plusplus": "off",
     "import/extensions": [
       "error",
       "ignorePackages",
@@ -39,10 +36,11 @@
   },
   "overrides": [
     {
-      "files": ["generateKinesisEvents.ts"],
+      "files": ["GenerateKinesisEvents.ts"],
       "rules": {
         "no-restricted-syntax": "off",
-        "no-await-in-loop": "off"
+        "no-await-in-loop": "off",
+        "no-plusplus": "off"
       }
     }
   ],
