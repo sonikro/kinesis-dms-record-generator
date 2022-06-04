@@ -7,7 +7,7 @@ export const streamProps = {
   endpoint: 'http://any-enpoint:4566',
   operation: 'load',
   recordFileDir: 'fileDir',
-  chunkSize: '10',
+  batchSize: '10',
 };
 export const firstJsonPayload: JSONObject = {
   id: 1,

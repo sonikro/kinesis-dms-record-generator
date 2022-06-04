@@ -20,9 +20,9 @@ import { NodeProgressBar } from '../providers/NodeProgressBar';
       'load',
     )
     .option(
-      '-c, --chunk-size <value>',
-      'chunk-size for batch processing (1 to 500)',
-      GenerateKinesisEvents.validateChunkSize,
+      '-c, --batch-size <value>',
+      'batch-size for batch processing (1 to 500)',
+      GenerateKinesisEvents.validateBatchSize,
       '1',
     )
     .parse();
@@ -45,7 +45,7 @@ import { NodeProgressBar } from '../providers/NodeProgressBar';
       partitionKey: response.partitionKey,
       localstackEndpoint: response.localstackEndpoint,
       operation: response.operation,
-      chunkSize: response.chunkSize,
+      batchSize: response.batchSize,
     });
     console.info(usecaseResponse);
   } catch (err: any) {

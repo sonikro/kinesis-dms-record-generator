@@ -39,7 +39,7 @@ describe('GenerateKinesisEvents', () => {
     };
   };
 
-  it('correctly loads file and invoke KinesisClient to put-records on stream with chunk size bigger than 1 (chunkSize = 10)', async () => {
+  it('correctly loads file and invoke KinesisClient to put-records on stream with batch size bigger than 1 (batchSize = 10)', async () => {
     // Given
     const { sut, fileSystem, mockDirContent, progressBar, kinesisClient, singleBarIncrement } =
       makeSut();
@@ -48,7 +48,7 @@ describe('GenerateKinesisEvents', () => {
     const streamProperties = {
       ...streamProps,
       filename: mockDirContent[0],
-      chunkSize: '10',
+      batchSize: '10',
     };
 
     // When
@@ -58,7 +58,7 @@ describe('GenerateKinesisEvents', () => {
       streamName: streamProperties.streamName,
       recordFileDir: streamProperties.recordFileDir,
       localstackEndpoint: streamProperties.endpoint,
-      chunkSize: +streamProperties.chunkSize,
+      batchSize: +streamProperties.batchSize,
     });
     // Then
     expect(fileSystem.readDir).toHaveBeenCalledWith(streamProperties.recordFileDir);
@@ -69,7 +69,7 @@ describe('GenerateKinesisEvents', () => {
     expect(kinesisClient.send).toHaveBeenCalledWith(mockDMSPayload);
     expect(singleBarIncrement).toHaveBeenCalled();
   });
-  it('correctly loads file and invoke KinesisClient to put-records on stream with chunk size 1', async () => {
+  it('correctly loads file and invoke KinesisClient to put-records on stream with batch size 1', async () => {
     // Given
     const { sut, mockDirContent, kinesisClient } = makeSut();
     const now = new Date('2022-05-22T10:00:00');
@@ -77,7 +77,7 @@ describe('GenerateKinesisEvents', () => {
     const streamProperties = {
       ...streamProps,
       filename: mockDirContent[0],
-      chunkSize: '1',
+      batchSize: '1',
     };
 
     // When
@@ -87,15 +87,15 @@ describe('GenerateKinesisEvents', () => {
       streamName: streamProperties.streamName,
       recordFileDir: streamProperties.recordFileDir,
       localstackEndpoint: streamProperties.endpoint,
-      chunkSize: +streamProperties.chunkSize,
+      batchSize: +streamProperties.batchSize,
     });
     // Then
-    const [firstChunk, secondChunk] = mockDMSPayload;
-    expect(kinesisClient.send).toHaveBeenNthCalledWith(1, [firstChunk]);
-    expect(kinesisClient.send).toHaveBeenNthCalledWith(2, [secondChunk]);
+    const [firstBatch, secondBatch] = mockDMSPayload;
+    expect(kinesisClient.send).toHaveBeenNthCalledWith(1, [firstBatch]);
+    expect(kinesisClient.send).toHaveBeenNthCalledWith(2, [secondBatch]);
   });
 
-  it('correctly loads file and invoke KinesisClient to put-records on stream with chunk size 1 using a single json', async () => {
+  it('correctly loads file and invoke KinesisClient to put-records on stream with batch size 1 using a single json', async () => {
     // Given
     const { sut, mockDirContent, kinesisClient, fileSystem } = makeSut();
     const now = new Date('2022-05-22T10:00:00');
@@ -105,7 +105,7 @@ describe('GenerateKinesisEvents', () => {
     const streamProperties = {
       ...streamProps,
       filename: mockDirContent[0],
-      chunkSize: '1',
+      batchSize: '1',
     };
 
     // When
@@ -115,11 +115,11 @@ describe('GenerateKinesisEvents', () => {
       streamName: streamProperties.streamName,
       recordFileDir: streamProperties.recordFileDir,
       localstackEndpoint: streamProperties.endpoint,
-      chunkSize: +streamProperties.chunkSize,
+      batchSize: +streamProperties.batchSize,
     });
     // Then
-    const [firstChunk] = mockDMSPayload;
-    expect(kinesisClient.send).toHaveBeenNthCalledWith(1, [firstChunk]);
+    const [firstBatch] = mockDMSPayload;
+    expect(kinesisClient.send).toHaveBeenNthCalledWith(1, [firstBatch]);
   });
 
   it('throws error if filename is incorrect', async () => {
@@ -131,7 +131,7 @@ describe('GenerateKinesisEvents', () => {
       streamName: 'stream-name',
       recordFileDir: 'fileDir',
       localstackEndpoint: 'http://localhost:4566',
-      chunkSize: '1',
+      batchSize: '1',
       filename: 'wrong.format',
     };
     fileSystem.readDir = jest.fn().mockReturnValue([expected.filename]);
@@ -143,7 +143,7 @@ describe('GenerateKinesisEvents', () => {
         streamName: expected.streamName,
         recordFileDir: expected.recordFileDir,
         localstackEndpoint: expected.localstackEndpoint,
-        chunkSize: +expected.chunkSize,
+        batchSize: +expected.batchSize,
       });
     };
     // Then
@@ -173,7 +173,7 @@ describe('GenerateKinesisEvents', () => {
       streamName: 'stream-name',
       recordFileDir: 'fileDir',
       localstackEndpoint: 'http://localhost:4566',
-      chunkSize: '1',
+      batchSize: '1',
       filename: mockDirContent,
     };
 
@@ -184,7 +184,7 @@ describe('GenerateKinesisEvents', () => {
       streamName: eventDefinition.streamName,
       recordFileDir: eventDefinition.recordFileDir,
       localstackEndpoint: eventDefinition.localstackEndpoint,
-      chunkSize: +eventDefinition.chunkSize,
+      batchSize: +eventDefinition.batchSize,
     });
   });
 
@@ -201,16 +201,16 @@ describe('GenerateKinesisEvents', () => {
     expect(act).toThrow(expectedErrorMessage);
   });
 
-  it('should return the chunkSize if is valid', () => {
-    const expectedChunkSize = '1';
-    const chunkSize = GenerateKinesisEvents.validateChunkSize('1');
-    expect(chunkSize).toBe(expectedChunkSize);
+  it('should return the batchSize if is valid', () => {
+    const expectedBatchSize = '1';
+    const batchSize = GenerateKinesisEvents.validateBatchSize('1');
+    expect(batchSize).toBe(expectedBatchSize);
   });
 
-  it('should throw an error if chunkSize is not valid', () => {
-    const invalidChunkSize = '0';
-    const expectedErrorMessage = `Invalid chunk size ${invalidChunkSize}. Please Make sure to select a number between 1 and 500`;
-    const act = () => GenerateKinesisEvents.validateChunkSize(invalidChunkSize);
+  it('should throw an error if batchSize is not valid', () => {
+    const invalidBatchSize = '0';
+    const expectedErrorMessage = `Invalid batch size ${invalidBatchSize}. Please Make sure to select a number between 1 and 500`;
+    const act = () => GenerateKinesisEvents.validateBatchSize(invalidBatchSize);
     expect(act).toThrow(expectedErrorMessage);
   });
 });

@@ -24,5 +24,5 @@ export interface GenerateKinesisEventsInput {
   /**
    * Flag to indicate you want to process as batch
    */
-  chunkSize: number;
+  batchSize: number;
 }

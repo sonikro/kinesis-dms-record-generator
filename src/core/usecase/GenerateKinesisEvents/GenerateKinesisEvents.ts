@@ -51,26 +51,26 @@ export class GenerateKinesisEvents
           operation,
         }),
       );
-      const totalChunks = Math.ceil(payloads.length / input.chunkSize);
-      const chunkProgressBar = this.progressBar.createSingleBar({
-        total: totalChunks,
+      const totalBatchs = Math.ceil(payloads.length / input.batchSize);
+      const batchProgressBar = this.progressBar.createSingleBar({
+        total: totalBatchs,
         startValue: 0,
         payload: {
           fileName: file.filename,
-          dataType: 'Chunks',
+          dataType: 'Batchs',
         },
       });
 
       let sliceInitialIndex = 0;
-      for (let i = 0; i < totalChunks; i++) {
-        const payloadChunks = payloads.slice(
+      for (let i = 0; i < totalBatchs; i++) {
+        const payloadBatchs = payloads.slice(
           sliceInitialIndex,
-          sliceInitialIndex + input.chunkSize,
+          sliceInitialIndex + input.batchSize,
         );
-        sliceInitialIndex += input.chunkSize;
-        await this.kinesisClient.send(payloadChunks);
-        loadedRecords += payloadChunks.length;
-        chunkProgressBar.increment();
+        sliceInitialIndex += input.batchSize;
+        await this.kinesisClient.send(payloadBatchs);
+        loadedRecords += payloadBatchs.length;
+        batchProgressBar.increment();
       }
       totalProgressBar.increment();
     }
@@ -115,16 +115,16 @@ export class GenerateKinesisEvents
     throw Error(errorMessage);
   }
 
-  static validateChunkSize(chunkSize: string): string {
+  static validateBatchSize(batchSize: string): string {
     /**
      * Each `PutRecords` request can support up to 500 records.
      * https://docs.aws.amazon.com/kinesis/latest/APIReference/API_PutRecords.html
      */
     const CHUNK_MAX_SIZE = 500;
-    if (+chunkSize >= 1 && +chunkSize <= CHUNK_MAX_SIZE) {
-      return chunkSize;
+    if (+batchSize >= 1 && +batchSize <= CHUNK_MAX_SIZE) {
+      return batchSize;
     }
-    const errorMessage = `Invalid chunk size ${chunkSize}. Please Make sure to select a number between 1 and ${CHUNK_MAX_SIZE}`;
+    const errorMessage = `Invalid batch size ${batchSize}. Please Make sure to select a number between 1 and ${CHUNK_MAX_SIZE}`;
     throw Error(errorMessage);
   }
 }
