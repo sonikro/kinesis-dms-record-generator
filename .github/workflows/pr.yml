@@ -3,9 +3,6 @@ name: PR Validation
 on:
   pull_request:
     branches: [develop]
-    paths-ignore:
-      - "**.md"
-      - .gitignore
 
 jobs:
   actionlint:
@@ -28,7 +25,7 @@ jobs:
       - run: semgrep --config auto .
 
   trivy-scan:
-    name: Trivy IaC Scan
+    name: Trivy Repo Scan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -49,7 +46,7 @@ jobs:
           sarif_file: "trivy-results.sarif"
   build:
     runs-on: ubuntu-latest
-
+    name: Node Build
     steps:
       - uses: actions/checkout@v2
 
