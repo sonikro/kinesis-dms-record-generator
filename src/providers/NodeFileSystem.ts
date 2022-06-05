@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from 'fs';
-import { FileSystem } from '../core/providers/FileSystem';
 import { JSONObject } from '../core/domain/JSONObject';
+import { FileSystem } from '../core/providers/FileSystem';
 
 export class NodeFileSystem implements FileSystem {
   readDir(dirname: string): string[] {

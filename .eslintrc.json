@@ -13,16 +13,19 @@
     "ecmaVersion": 12,
     "sourceType": "module"
   },
-  "plugins": [
-    "@typescript-eslint",
-    "prettier"
-  ],
+  "plugins": ["@typescript-eslint", "prettier"],
   "rules": {
-    "prettier/prettier": "error",
+    "prettier/prettier": [
+      "error",
+      {
+        "printWidth": 100
+      }
+    ],
     "no-console": "off",
     "import/prefer-default-export": "off",
     "no-useless-constructor": "off",
     "class-methods-use-this": "off",
+    "@typescript-eslint/no-explicit-any": "off",
     "import/extensions": [
       "error",
       "ignorePackages",
@@ -33,12 +36,11 @@
   },
   "overrides": [
     {
-      "files": [
-        "generateKinesisEvents.ts"
-      ],
+      "files": ["GenerateKinesisEvents.ts"],
       "rules": {
         "no-restricted-syntax": "off",
-        "no-await-in-loop": "off"
+        "no-await-in-loop": "off",
+        "no-plusplus": "off"
       }
     }
   ],

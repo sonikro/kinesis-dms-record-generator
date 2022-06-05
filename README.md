@@ -97,10 +97,13 @@ This JSON file will generate the following Kinesis Record
 | -p, --partition-key <value> | The partition key | No | 1 |
 | -e, --localstack-endpoint <value> | The localstack endpoint | No | http://localhost:4566 |
 | -o, --operation <value> | The operation* name you want to simulate | No | LOAD |
+| -b, --batch-size <value> | batch-size for batch processing | No | 1 |
 
 - *Valid operations: LOAD, INSERT, UPDATE and DELETE
+- *Valid batch sizes: 1 to 500 [(AWS limits)](https://docs.aws.amazon.com/cli/latest/reference/kinesis/put-records.html)
   
 The cli will load all files inside the **files** folder, and load them to the kinesis stream
+_By default it will load one by one but you can also add the --batch-size <value> to put multiple records in batches_
 
 # Running as bin
 
