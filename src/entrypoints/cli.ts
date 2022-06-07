@@ -45,7 +45,7 @@ import { NodeProgressBar } from '../providers/NodeProgressBar';
       partitionKey: response.partitionKey,
       localstackEndpoint: response.localstackEndpoint,
       operation: response.operation,
-      batchSize: response.batchSize,
+      batchSize: +response.batchSize,
     });
     console.info(usecaseResponse);
   } catch (err: any) {
