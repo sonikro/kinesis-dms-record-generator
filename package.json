@@ -1,6 +1,6 @@
 {
   "name": "dms-kinesis-gen",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Generate Kinesis Base64 Records, based on JSON Files",
   "main": "./dist/entrypoints/cli.js",
   "author": "Jonathan Nagayoshi",
