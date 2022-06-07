@@ -51,25 +51,25 @@ export class GenerateKinesisEvents
           operation,
         }),
       );
-      const totalBatchs = Math.ceil(payloads.length / input.batchSize);
+      const totalBatches = Math.ceil(payloads.length / input.batchSize);
       const batchProgressBar = this.progressBar.createSingleBar({
-        total: totalBatchs,
+        total: totalBatches,
         startValue: 0,
         payload: {
           fileName: file.filename,
-          dataType: 'Batchs',
+          dataType: 'Batch(es)',
         },
       });
 
       let sliceInitialIndex = 0;
-      for (let i = 0; i < totalBatchs; i++) {
-        const payloadBatchs = payloads.slice(
+      for (let i = 0; i < totalBatches; i++) {
+        const payloadBatches = payloads.slice(
           sliceInitialIndex,
           sliceInitialIndex + input.batchSize,
         );
         sliceInitialIndex += input.batchSize;
-        await this.kinesisClient.send(payloadBatchs);
-        loadedRecords += payloadBatchs.length;
+        await this.kinesisClient.send(payloadBatches);
+        loadedRecords += payloadBatches.length;
         batchProgressBar.increment();
       }
       totalProgressBar.increment();
