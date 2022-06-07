@@ -39,6 +39,33 @@ describe('GenerateKinesisEvents', () => {
     };
   };
 
+  const makeExpectedCall = (schema: string, table: string) => {
+    return [
+      {
+        data: { age: 18, id: 1, name: 'Joselito Naruto' },
+        metadata: {
+          operation: 'load',
+          'partition-key-type': 'primary-key',
+          'record-type': 'data',
+          'schema-name': schema,
+          'table-name': table,
+          timestamp: '2022-05-22T10:00:00.0000Z',
+        },
+      },
+      {
+        data: { age: 25, id: 1, name: 'Nagas Bike' },
+        metadata: {
+          operation: 'load',
+          'partition-key-type': 'primary-key',
+          'record-type': 'data',
+          'schema-name': schema,
+          'table-name': table,
+          timestamp: '2022-05-22T10:00:00.0000Z',
+        },
+      },
+    ];
+  };
+
   it('correctly loads file and invoke KinesisClient to put-records on stream with batch size bigger than 1 (batchSize = 10)', async () => {
     // Given
     const { sut, fileSystem, mockDirContent, progressBar, kinesisClient, singleBarIncrement } =
@@ -50,9 +77,18 @@ describe('GenerateKinesisEvents', () => {
       filename: mockDirContent[0],
       batchSize: '10',
     };
+    const expectedResponse = {
+      batchSize: 10,
+      loadedRecords: 2,
+      localstackEndpoint: 'http://any-enpoint:4566',
+      operation: 'load',
+      partitionKey: 'any-partition-key',
+      recordFileDir: 'fileDir',
+      streamName: 'any-stream-name',
+    };
 
     // When
-    await sut.invoke({
+    const response = await sut.invoke({
       partitionKey: streamProperties.partitionKey,
       operation: 'load' as Operation,
       streamName: streamProperties.streamName,
@@ -68,7 +104,9 @@ describe('GenerateKinesisEvents', () => {
     );
     expect(kinesisClient.send).toHaveBeenCalledWith(mockDMSPayload);
     expect(singleBarIncrement).toHaveBeenCalled();
+    expect(response).toEqual(expectedResponse);
   });
+
   it('correctly loads file and invoke KinesisClient to put-records on stream with batch size 1', async () => {
     // Given
     const { sut, mockDirContent, kinesisClient } = makeSut();
@@ -154,8 +192,8 @@ describe('GenerateKinesisEvents', () => {
 
   it('should load files from bigger order to lower order', async () => {
     // Given
-    const { sut, fileSystem } = makeSut();
-    const now = new Date();
+    const { sut, fileSystem, kinesisClient } = makeSut();
+    const now = new Date('2022-05-22T10:00:00');
     Date.now = jest.fn().mockReturnValue(now);
 
     const mockDirContent = [
@@ -164,7 +202,6 @@ describe('GenerateKinesisEvents', () => {
       '4.schema4.table4.json',
       '2.schema2.table2.json',
     ];
-
     fileSystem.readDir = jest.fn().mockReturnValue(mockDirContent);
 
     const eventDefinition = {
@@ -186,6 +223,53 @@ describe('GenerateKinesisEvents', () => {
       localstackEndpoint: eventDefinition.localstackEndpoint,
       batchSize: +eventDefinition.batchSize,
     });
+
+    const listOfExpectedCalls = [
+      ...makeExpectedCall('schema4', 'table4'),
+      ...makeExpectedCall('schema3', 'table3'),
+      ...makeExpectedCall('schema2', 'table2'),
+      ...makeExpectedCall('schema1', 'table1'),
+    ];
+    listOfExpectedCalls.forEach((call, index) => {
+      expect(kinesisClient.send).toHaveBeenNthCalledWith(index + 1, [call]);
+    });
+  });
+
+  it('should not call kinesisClient if there payload batch is empty due invalid batchSize passed "as any"', async () => {
+    // Given
+    const { sut, fileSystem, kinesisClient } = makeSut();
+    const now = new Date();
+    Date.now = jest.fn().mockReturnValue(now);
+
+    const mockDirContent = [
+      '1.schema1.table1.json',
+      '3.schema3.table3.json',
+      '4.schema4.table4.json',
+      '2.schema2.table2.json',
+    ];
+
+    fileSystem.readDir = jest.fn().mockReturnValue(mockDirContent);
+
+    const eventDefinition = {
+      partitionKey: '1',
+      operation: 'load',
+      streamName: 'stream-name',
+      recordFileDir: 'fileDir',
+      localstackEndpoint: 'http://localhost:4566',
+      batchSize: 'any-number-not-parsed-to-string',
+      filename: mockDirContent,
+    };
+
+    // When
+    await sut.invoke({
+      partitionKey: eventDefinition.partitionKey,
+      operation: eventDefinition.operation as Operation,
+      streamName: eventDefinition.streamName,
+      recordFileDir: eventDefinition.recordFileDir,
+      localstackEndpoint: eventDefinition.localstackEndpoint,
+      batchSize: eventDefinition.batchSize as any,
+    });
+    expect(kinesisClient.send).not.toHaveBeenCalled();
   });
 
   it('should return the operation if is valid', () => {
