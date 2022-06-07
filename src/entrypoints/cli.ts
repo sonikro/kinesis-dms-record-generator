@@ -20,7 +20,7 @@ import { NodeProgressBar } from '../providers/NodeProgressBar';
       'load',
     )
     .option(
-      '-c, --batch-size <value>',
+      '-b, --batch-size <value>',
       'batch-size for batch processing (1 to 500)',
       GenerateKinesisEvents.validateBatchSize,
       '1',
